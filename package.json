@@ -16,6 +16,14 @@
       {
         "command": "easy-cipher-content.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "easy-cipher-content.encrypt",
+        "title": "Encrypt Content"
+      },
+      {
+        "command": "easy-cipher-content.decrypt",
+        "title": "Decrypt Content"
       }
     ]
   },

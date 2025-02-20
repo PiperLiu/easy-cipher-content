@@ -1,26 +1,91 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let encryptButton: vscode.StatusBarItem;
+let decryptButton: vscode.StatusBarItem;
+
 export function activate(context: vscode.ExtensionContext) {
+    // 创建状态栏按钮
+    encryptButton = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    );
+    encryptButton.text = "$(lock) Encrypt";
+    encryptButton.command = 'easy-cipher-content.encrypt';
+    
+    decryptButton = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        99
+    );
+    decryptButton.text = "$(unlock) Decrypt";
+    decryptButton.command = 'easy-cipher-content.decrypt';
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "easy-cipher-content" is now active!');
+    // 注册命令
+    let encryptDisposable = vscode.commands.registerCommand('easy-cipher-content.encrypt', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            const document = editor.document;
+            const text = document.getText();
+            const encrypted = text.toUpperCase();
+            
+            editor.edit(editBuilder => {
+                const range = new vscode.Range(
+                    document.positionAt(0),
+                    document.positionAt(text.length)
+                );
+                editBuilder.replace(range, encrypted);
+            });
+        }
+    });
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('easy-cipher-content.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from easy-cipher-content!');
-	});
+    let decryptDisposable = vscode.commands.registerCommand('easy-cipher-content.decrypt', () => {
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            const document = editor.document;
+            const text = document.getText();
+            const decrypted = text.toLowerCase();
+            
+            editor.edit(editBuilder => {
+                const range = new vscode.Range(
+                    document.positionAt(0),
+                    document.positionAt(text.length)
+                );
+                editBuilder.replace(range, decrypted);
+            });
+        }
+    });
 
-	context.subscriptions.push(disposable);
+    // 监听编辑器变化，显示/隐藏按钮
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(() => {
+            updateButtonVisibility();
+        })
+    );
+
+    // 初始化按钮状态
+    updateButtonVisibility();
+
+    // 注册到订阅列表
+    context.subscriptions.push(encryptButton);
+    context.subscriptions.push(decryptButton);
+    context.subscriptions.push(encryptDisposable);
+    context.subscriptions.push(decryptDisposable);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+function updateButtonVisibility() {
+    if (vscode.window.activeTextEditor) {
+        encryptButton.show();
+        decryptButton.show();
+    } else {
+        encryptButton.hide();
+        decryptButton.hide();
+    }
+}
+
+export function deactivate() {
+    if (encryptButton) {
+        encryptButton.dispose();
+    }
+    if (decryptButton) {
+        decryptButton.dispose();
+    }
+}

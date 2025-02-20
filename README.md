@@ -1,16 +1,14 @@
-# easy-cipher-content README
+# easy-cipher-content
 
-This is the README for your extension "easy-cipher-content". After writing up a brief description, we recommend including the following sections.
+A VS Code extension for encrypting and decrypting text content.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+This extension provides two buttons in the status bar for any text file:
+- Encrypt: Converts all text to uppercase
+- Decrypt: Converts all text to lowercase
 
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+The buttons appear in the top-right corner of VS Code when a text file is open.
 
 ## Requirements
 
