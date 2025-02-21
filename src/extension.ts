@@ -54,21 +54,21 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    // 监听编辑器变化，显示/隐藏按钮
+    // 添加订阅以确保资源在插件停用时释放
+    context.subscriptions.push(encryptButton);
+    context.subscriptions.push(decryptButton);
+    context.subscriptions.push(encryptDisposable);
+    context.subscriptions.push(decryptDisposable);
+
+    // 初始化按钮可见性
+    updateButtonVisibility();
+
+    // 监听编辑器变化
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor(() => {
             updateButtonVisibility();
         })
     );
-
-    // 初始化按钮状态
-    updateButtonVisibility();
-
-    // 注册到订阅列表
-    context.subscriptions.push(encryptButton);
-    context.subscriptions.push(decryptButton);
-    context.subscriptions.push(encryptDisposable);
-    context.subscriptions.push(decryptDisposable);
 }
 
 function updateButtonVisibility() {
