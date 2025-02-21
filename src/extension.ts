@@ -1,24 +1,6 @@
 import * as vscode from 'vscode';
 
-let encryptButton: vscode.StatusBarItem;
-let decryptButton: vscode.StatusBarItem;
-
 export function activate(context: vscode.ExtensionContext) {
-    // 创建状态栏按钮
-    encryptButton = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right,
-        100
-    );
-    encryptButton.text = "$(lock) Encrypt";
-    encryptButton.command = 'easy-cipher-content.encrypt';
-    
-    decryptButton = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right,
-        99
-    );
-    decryptButton.text = "$(unlock) Decrypt";
-    decryptButton.command = 'easy-cipher-content.decrypt';
-
     // 注册命令
     let encryptDisposable = vscode.commands.registerCommand('easy-cipher-content.encrypt', () => {
         const editor = vscode.window.activeTextEditor;
@@ -55,37 +37,8 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // 添加订阅以确保资源在插件停用时释放
-    context.subscriptions.push(encryptButton);
-    context.subscriptions.push(decryptButton);
     context.subscriptions.push(encryptDisposable);
     context.subscriptions.push(decryptDisposable);
-
-    // 初始化按钮可见性
-    updateButtonVisibility();
-
-    // 监听编辑器变化
-    context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor(() => {
-            updateButtonVisibility();
-        })
-    );
 }
 
-function updateButtonVisibility() {
-    if (vscode.window.activeTextEditor) {
-        encryptButton.show();
-        decryptButton.show();
-    } else {
-        encryptButton.hide();
-        decryptButton.hide();
-    }
-}
-
-export function deactivate() {
-    if (encryptButton) {
-        encryptButton.dispose();
-    }
-    if (decryptButton) {
-        decryptButton.dispose();
-    }
-}
+export function deactivate() {}

@@ -4,11 +4,11 @@ A VS Code extension for encrypting and decrypting text content.
 
 ## Features
 
-This extension provides two buttons in the status bar for any text file:
+This extension provides two buttons in the editor title bar for any text file:
 - Encrypt: Converts all text to uppercase
 - Decrypt: Converts all text to lowercase
 
-The buttons appear in the top-right corner of VS Code when a text file is open.
+The buttons appear in the editor title bar (next to each tab) when a text file is open.
 
 ## Requirements
 

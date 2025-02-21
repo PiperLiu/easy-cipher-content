@@ -25,7 +25,19 @@
         "command": "easy-cipher-content.decrypt",
         "title": "Decrypt Content"
       }
-    ]
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "easy-cipher-content.encrypt",
+          "group": "navigation"
+        },
+        {
+          "command": "easy-cipher-content.decrypt",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
