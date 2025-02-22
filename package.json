@@ -9,14 +9,10 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": ["*"],
+  "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "easy-cipher-content.helloWorld",
-        "title": "Hello World"
-      },
       {
         "command": "easy-cipher-content.encrypt",
         "title": "Encrypt Content"
@@ -37,6 +33,21 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "Easy Cipher Content",
+      "properties": {
+        "easy-cipher-content.algorithm": {
+          "type": "string",
+          "default": "aes-gcm",
+          "description": "encrypt and decrypt algorithm"
+        },
+        "easy-cipher-content.password": {
+          "type": "string",
+          "default": "",
+          "description": "if not set, will use the password from environment"
+        }
+      }
     }
   },
   "scripts": {
