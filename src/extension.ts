@@ -1,18 +1,14 @@
 import * as vscode from "vscode";
-import { AESGCMEncryption, AESGCMEncryptionConfigFromEnv, EncryptionService } from "easy-cipher-mate";
+import { encryptionServiceFactory } from "./encryption";
 
 export function activate(context: vscode.ExtensionContext) {
-  const config = vscode.workspace.getConfiguration('easy-cipher-content');
-  const password = config.get('password');
+  const config = vscode.workspace.getConfiguration("easy-cipher-content");
 
-  const encryptionService = new EncryptionService(
-    new AESGCMEncryption(),
-    new AESGCMEncryptionConfigFromEnv(password as string),
-  );
+  const encryptionService = encryptionServiceFactory(config ?? {});
 
   let encryptDisposable = vscode.commands.registerCommand(
     "easy-cipher-content.encrypt",
-    async  () => {
+    async () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         const document = editor.document;
@@ -24,7 +20,10 @@ export function activate(context: vscode.ExtensionContext) {
             document.positionAt(0),
             document.positionAt(text.length)
           );
-          editBuilder.replace(range, Buffer.from(encrypted.data).toString('utf-8'));
+          editBuilder.replace(
+            range,
+            Buffer.from(encrypted.data).toString("utf-8")
+          );
         });
       }
     }

@@ -39,13 +39,22 @@
       "properties": {
         "easy-cipher-content.algorithm": {
           "type": "string",
+          "enum": [
+            "aes-gcm",
+            "chacha20-poly1305"
+          ],
           "default": "aes-gcm",
           "description": "encrypt and decrypt algorithm"
         },
-        "easy-cipher-content.password": {
+        "easy-cipher-content.use_env": {
+          "type": "boolean",
+          "default": true,
+          "description": "use env for encryption key"
+        },
+        "easy-cipher-content.json_path": {
           "type": "string",
           "default": "",
-          "description": "if not set, will use the password from environment"
+          "description": "if use_env is false, json_path should be set for reading encryption key"
         }
       }
     }
