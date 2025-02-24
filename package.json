@@ -78,6 +78,6 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "easy-cipher-mate": "^1.0.0"
+    "easy-cipher-mate": "^1.0.1"
   }
 }
