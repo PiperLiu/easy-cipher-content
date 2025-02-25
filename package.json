@@ -1,8 +1,13 @@
 {
   "name": "easy-cipher-content",
   "displayName": "easy-cipher-content",
-  "description": "",
+  "description": "A VS Code extension for encrypting and decrypting text content with AES-GCM or ChaCha20-Poly1305",
   "version": "0.0.1",
+  "publisher": "PiperLiu",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PiperLiu/easy-cipher-content"
+  },
   "engines": {
     "vscode": "^1.97.0"
   },
@@ -15,11 +20,13 @@
     "commands": [
       {
         "command": "easy-cipher-content.encrypt",
-        "title": "Encrypt Content"
+        "title": "🔒 Encrypt",
+        "icon": "$(lock)"
       },
       {
         "command": "easy-cipher-content.decrypt",
-        "title": "Decrypt Content"
+        "title": "🔓 Decrypt",
+        "icon": "$(unlock)"
       }
     ],
     "menus": {

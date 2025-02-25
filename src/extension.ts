@@ -13,17 +13,23 @@ export function activate(context: vscode.ExtensionContext) {
       if (editor) {
         const document = editor.document;
         const text = document.getText();
-        const encrypted = await encryptionService.encryptText(text);
+        const lines = text.split(/\r?\n/);
+        const encryptedLines = await Promise.all(
+          lines.map(async (line) => {
+            if (line.trim() === "") {
+              return line;
+            }
+            const encrypted = await encryptionService.encryptText(line);
+            return Buffer.from(encrypted.data).toString("base64");
+          })
+        );
 
         editor.edit((editBuilder) => {
           const range = new vscode.Range(
             document.positionAt(0),
             document.positionAt(text.length)
           );
-          editBuilder.replace(
-            range,
-            Buffer.from(encrypted.data).toString("utf-8")
-          );
+          editBuilder.replace(range, encryptedLines.join("\n"));
         });
       }
     }
@@ -31,19 +37,38 @@ export function activate(context: vscode.ExtensionContext) {
 
   let decryptDisposable = vscode.commands.registerCommand(
     "easy-cipher-content.decrypt",
-    () => {
+    async () => {
       const editor = vscode.window.activeTextEditor;
       if (editor) {
         const document = editor.document;
         const text = document.getText();
-        const decrypted = text.toLowerCase();
+        const lines = text.split(/\r?\n/);
+        const encryptedLines = await Promise.all(
+          lines.map(async (line, index) => {
+            if (line.trim() === "") {
+              return line;
+            }
+
+            try {
+              const buffer = Buffer.from(line, "base64");
+              return await encryptionService.decryptText(buffer);
+            } catch (e) {
+              // If this is the first error we encounter, it might be due to wrong password
+              if (index === lines.findIndex((l) => l.trim() !== "")) {
+                throw new Error("Invalid password");
+              }
+              // Otherwise, just return the original line
+              return line;
+            }
+          })
+        );
 
         editor.edit((editBuilder) => {
           const range = new vscode.Range(
             document.positionAt(0),
             document.positionAt(text.length)
           );
-          editBuilder.replace(range, decrypted);
+          editBuilder.replace(range, encryptedLines.join("\n"));
         });
       }
     }
