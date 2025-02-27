@@ -1,14 +1,32 @@
 # Easy Cipher Content
 
-A VS Code extension for encrypting and decrypting text content using industry-standard encryption algorithms.
+A VS Code extension for encrypting and decrypting both text and binary files with AES-GCM or ChaCha20-Poly1305 algorithms.
 
 ## Features
 
-This extension provides two buttons in the editor title bar for any text file:
-- 🔒 Encrypt: Encrypts text using your chosen algorithm (AES-GCM or ChaCha20-Poly1305)
-- 🔓 Decrypt: Decrypts previously encrypted text
+- 🔒 **Encrypt** and 🔓 **Decrypt** text content line by line or entire files
+- 🖼️ Support for both text files and binary files (images, videos, etc.)
+- 🗄️ Batch encryption/decryption of an entire workspace
+- 🚫 Ignore specific files/directories during batch operations
+- 🔑 Configurable encryption algorithms and key management
 
-The buttons appear in the editor title bar (next to each tab) when a text file is open.
+## Usage
+
+### Single File Operations
+
+- Click the 🔒 **Encrypt** or 🔓 **Decrypt** buttons in the editor title bar
+- For text files, content is encrypted line by line
+- For binary files, the entire file is encrypted and saved with a `.enc` extension
+
+### Workspace Operations
+
+1. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux) to open the Command Palette
+2. Type "Encrypt All Files in Workspace" or "Decrypt All Files in Workspace"
+3. The extension will process all files according to your configuration
+
+### Ignoring Files
+
+Create a `.easy-cipher-content-ignore` file in your workspace root with patterns similar to `.gitignore`:
 
 ## Configuration
 

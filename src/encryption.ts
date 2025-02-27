@@ -133,8 +133,7 @@ function AESGCMServiceFactory(
 }
 
 class CustomChaCha20Poly1305EncryptionConfig
-  implements IChaCha20Poly1305EncryptionConfig
-{
+  implements IChaCha20Poly1305EncryptionConfig {
   password: string;
   salt: Buffer;
   nonce: Buffer;

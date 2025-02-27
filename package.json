@@ -14,7 +14,9 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -26,6 +28,16 @@
       {
         "command": "easy-cipher-content.decrypt",
         "title": "🔓 Decrypt",
+        "icon": "$(unlock)"
+      },
+      {
+        "command": "easy-cipher-content.encryptWorkspace",
+        "title": "🔒 Encrypt All Files in Workspace",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "easy-cipher-content.decryptWorkspace",
+        "title": "🔓 Decrypt All Files in Workspace",
         "icon": "$(unlock)"
       }
     ],
@@ -62,6 +74,57 @@
           "type": "string",
           "default": "",
           "description": "if use_env is false, json_path should be set for reading encryption key"
+        },
+        "easy-cipher-content.textFileExtensions": {
+          "type": "array",
+          "default": [
+            ".txt",
+            ".md",
+            ".markdown",
+            ".json",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".html",
+            ".htm",
+            ".css",
+            ".scss",
+            ".less",
+            ".py",
+            ".java",
+            ".rb",
+            ".c",
+            ".cpp",
+            ".h",
+            ".cs",
+            ".go",
+            ".php",
+            ".pl",
+            ".sh",
+            ".bash",
+            ".yaml",
+            ".yml",
+            ".xml",
+            ".svg",
+            ".sql",
+            ".ini",
+            ".conf",
+            ".toml",
+            ".rst",
+            ".tex"
+          ],
+          "description": "Extensions of files that should be treated as text files"
+        },
+        "easy-cipher-content.ignoreFile": {
+          "type": "string",
+          "default": ".easy-cipher-content-ignore",
+          "description": "Name of the file containing patterns to ignore during batch operations"
+        },
+        "easy-cipher-content.deleteOriginalAfterEncryption": {
+          "type": "boolean",
+          "default": true,
+          "description": "Delete the original file after encryption (applies to binary files)"
         }
       }
     }
@@ -83,6 +146,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
+    "@types/sinon": "^17.0.4",
     "@types/vscode": "^1.97.0",
     "@typescript-eslint/eslint-plugin": "^8.22.0",
     "@typescript-eslint/parser": "^8.22.0",
@@ -91,6 +155,7 @@
     "esbuild": "^0.24.2",
     "eslint": "^9.19.0",
     "npm-run-all": "^4.1.5",
+    "sinon": "^19.0.2",
     "typescript": "^5.7.3"
   },
   "dependencies": {
