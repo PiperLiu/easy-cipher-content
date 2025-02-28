@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import ignore from 'ignore';
+
 
 /**
  * Determines if a file is a text file based on its extension
@@ -57,18 +59,6 @@ export async function parseIgnoreFile(rootPath: vscode.Uri): Promise<string[]> {
  * Check if a file should be ignored based on patterns
  */
 export function shouldIgnore(filePath: string, ignorePatterns: string[]): boolean {
-  // Simple implementation of glob pattern matching
-  return ignorePatterns.some(pattern => {
-    if (pattern.endsWith('/**')) {
-      const dirPattern = pattern.slice(0, -3);
-      return filePath.startsWith(dirPattern);
-    } else if (pattern.startsWith('**/*.')) {
-      const ext = pattern.slice(3);
-      return filePath.endsWith(ext);
-    } else if (pattern.includes('*')) {
-      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
-      return regex.test(path.basename(filePath));
-    }
-    return filePath.includes(pattern);
-  });
+  const ig = ignore().add(ignorePatterns);
+  return ig.ignores(filePath);
 }
