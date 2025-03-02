@@ -17,7 +17,13 @@ export class FileManager {
   async encryptFile(fileUri: vscode.Uri): Promise<void> {
     try {
       const fileBuffer = await vscode.workspace.fs.readFile(fileUri);
-      const encrypted = await this.encryptionService.encryptFile(fileBuffer.buffer);
+      if (fileBuffer.length === 0) {
+        vscode.window.showWarningMessage(`Empty file: ${fileUri.fsPath}, skipping encryption.`);
+        return;
+      }
+      const encrypted = await this.encryptionService.encryptFile(
+        fileBuffer.buffer
+      );
 
       // Write encrypted data to the .enc file
       const targetPath = vscode.Uri.file(getTargetFilePath(fileUri.fsPath, 'encrypt'));
