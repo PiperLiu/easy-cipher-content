@@ -153,9 +153,11 @@ export class FileManager {
       return;
     }
 
-    const relativePath = vscode.workspace.asRelativePath(dirUri);
-    if (shouldIgnore(relativePath, ignorePatterns)) {
-      return;
+    if (dirUri !== vscode.workspace.workspaceFolders![0].uri) {
+      const relativePath = vscode.workspace.asRelativePath(dirUri, false);
+      if (shouldIgnore(relativePath, ignorePatterns)) {
+        return;
+      }
     }
 
     const entries = await vscode.workspace.fs.readDirectory(dirUri);
