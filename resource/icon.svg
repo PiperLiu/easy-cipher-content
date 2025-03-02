@@ -1,0 +1,47 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆 -->
+  <circle cx="64" cy="64" r="60" fill="#E6E6FA" opacity="0.3"/>
+
+  <!-- 鸟的身体 -->
+  <path d="M64 80 
+           C80 80 96 64 96 48 
+           C96 32 80 16 64 16 
+           C48 16 32 32 32 48 
+           C32 64 48 80 64 80" 
+        fill="#6A5ACD"/>
+
+  <!-- 鸟的肚子 -->
+  <path d="M64 80 
+           C76 80 88 68 88 56 
+           C88 44 76 32 64 32 
+           C52 32 40 44 40 56 
+           C40 68 52 80 64 80" 
+        fill="#87CEEB"/>
+
+  <!-- 翅膀 -->
+  <path d="M48 64 
+           C40 64 32 56 32 48 
+           C32 40 40 32 48 32 
+           C56 32 64 40 64 48" 
+        fill="#483D8B" opacity="0.8"/>
+
+  <!-- 眼睛 -->
+  <circle cx="72" cy="40" r="6" fill="#FFFFFF"/>
+  <circle cx="72" cy="40" r="3" fill="#000000"/>
+
+  <!-- 喙 -->
+  <path d="M80 48 
+           L88 52 
+           L80 56 
+           Z" 
+        fill="#FFA500"/>
+
+  <!-- 脚 -->
+  <path d="M60 80 
+           L56 88 
+           M68 80 
+           L72 88" 
+        stroke="#FFA500" 
+        stroke-width="3" 
+        stroke-linecap="round"/>
+</svg>

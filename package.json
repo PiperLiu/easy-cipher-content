@@ -1,7 +1,8 @@
 {
   "name": "easy-cipher-content",
-  "displayName": "easy-cipher-content",
-  "description": "A VS Code extension for encrypting and decrypting text content with AES-GCM or ChaCha20-Poly1305",
+  "icon": "resource/icon.png",
+  "displayName": "Easy Cipher Content",
+  "description": "A powerful VS Code extension for securing both text and binary files with industry-standard encryption algorithms. Easily protect your sensitive data while maintaining a seamless workflow in your development environment.",
   "version": "0.0.1",
   "publisher": "PiperLiu",
   "repository": {
