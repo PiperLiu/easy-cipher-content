@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { EncryptionService } from 'easy-cipher-mate';
-import { isTextFile, getTargetFilePath, parseIgnoreFile, shouldIgnore } from './utils';
+import { isTextFile, getTargetFilePath, parseIgnoreFile, shouldIgnore, mapVSCodeEncodingToTextEncoding } from './utils';
 
 export class FileManager {
   private encryptionService: EncryptionService<any, any>;
@@ -66,10 +66,18 @@ export class FileManager {
   /**
    * Process text content of a file
    */
-  async processTextFile(fileUri: vscode.Uri, operation: 'encrypt' | 'decrypt'): Promise<void> {
+  async processTextFile(fileUri: vscode.Uri, operation: 'encrypt' | 'decrypt', encoding?: string): Promise<void> {
     try {
+      // Check if the encoding is supported
+      const encodingResult = mapVSCodeEncodingToTextEncoding(encoding);
+      if (!encodingResult.supported) {
+        vscode.window.showWarningMessage(`Encoding '${encoding}' is not supported for encryption/decryption. Using UTF-8 instead.`);
+        // Continue with UTF-8 as fallback
+      }
+
       const fileContent = await vscode.workspace.fs.readFile(fileUri);
-      const text = Buffer.from(fileContent).toString('utf-8');
+      // Use document encoding if provided, otherwise detect from file content
+      const text = Buffer.from(fileContent).toString(encodingResult.encoding as BufferEncoding || 'utf-8');
       const lines = text.split(/\r?\n/);
 
       const processedLines = await Promise.all(
@@ -79,12 +87,12 @@ export class FileManager {
           }
 
           if (operation === 'encrypt') {
-            const encrypted = await this.encryptionService.encryptText(line);
+            const encrypted = await this.encryptionService.encryptText(line, encodingResult.encoding as any);
             return Buffer.from(encrypted.data).toString('base64');
           } else {
             try {
               const buffer = Buffer.from(line, 'base64');
-              return await this.encryptionService.decryptText(buffer);
+              return await this.encryptionService.decryptText(buffer, encodingResult.encoding as any);
             } catch (e) {
               // If failed to decrypt, return original line
               return line;
@@ -94,7 +102,7 @@ export class FileManager {
       );
 
       const processedContent = processedLines.join('\n');
-      await vscode.workspace.fs.writeFile(fileUri, Buffer.from(processedContent, 'utf-8'));
+      await vscode.workspace.fs.writeFile(fileUri, Buffer.from(processedContent, encodingResult.encoding as BufferEncoding || 'utf-8'));
     } catch (error) {
       vscode.window.showErrorMessage(`Error processing text file: ${error instanceof Error ? error.message : String(error)}`);
     }

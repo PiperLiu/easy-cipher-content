@@ -2,14 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import ignore from 'ignore';
 
-
 /**
  * Determines if a file is a text file based on its extension
  */
 export function isTextFile(filePath: string, config: vscode.WorkspaceConfiguration): boolean {
   const textFileExtensions = config.get<string[]>('textFileExtensions', []);
   const extension = path.extname(filePath).toLowerCase();
-  return textFileExtensions.includes(extension);
+  return textFileExtensions.includes(extension) || textFileExtensions.includes(path.basename(filePath));
 }
 
 /**
@@ -61,4 +60,40 @@ export async function parseIgnoreFile(rootPath: vscode.Uri): Promise<string[]> {
 export function shouldIgnore(filePath: string, ignorePatterns: string[]): boolean {
   const ig = ignore().add(ignorePatterns);
   return ig.ignores(filePath);
+}
+
+/**
+ * Maps VS Code encodings to TextEncoding supported by easy-cipher-mate
+ */
+export function mapVSCodeEncodingToTextEncoding(encoding?: string): { supported: boolean; encoding?: string } {
+  if (!encoding) {
+    return { supported: true, encoding: 'utf-8' }; // Default to UTF-8
+  }
+  
+  // Map VS Code encodings to TextEncoding values supported by easy-cipher-mate
+  const encodingMap: Record<string, string> = {
+    'utf8': 'utf-8',
+    'utf-8': 'utf-8',
+    'ascii': 'ascii',
+    'utf16le': 'utf16le',
+    'base64': 'base64',
+    'hex': 'hex',
+    'latin1': 'latin1',
+    'binary': 'binary'
+  };
+  
+  const supportedEncoding = encodingMap[encoding.toLowerCase()];
+  
+  return {
+    supported: !!supportedEncoding,
+    encoding: supportedEncoding
+  };
+}
+
+/**
+ * Gets the encoding of a text document
+ */
+export function getDocumentEncoding(document: vscode.TextDocument): string {
+  const config = vscode.workspace.getConfiguration('files', document.uri);
+  return config.get<string>('encoding', 'utf8');
 }

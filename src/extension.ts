@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { encryptionServiceFactory } from "./encryption";
 import { FileManager } from "./fileManager";
-import { isTextFile } from "./utils";
+import { isTextFile, mapVSCodeEncodingToTextEncoding, getDocumentEncoding } from "./utils";
 
 export function activate(context: vscode.ExtensionContext) {
   const config = vscode.workspace.getConfiguration("easy-cipher-content");
@@ -17,6 +17,23 @@ export function activate(context: vscode.ExtensionContext) {
         const filePath = document.uri.fsPath;
 
         if (isTextFile(filePath, config)) {
+          // Get document encoding
+          const documentEncoding = getDocumentEncoding(document);
+          const encodingResult = mapVSCodeEncodingToTextEncoding(documentEncoding);
+
+          if (!encodingResult.supported) {
+            const proceed = await vscode.window.showWarningMessage(
+              `The encoding '${documentEncoding}' for this file is not directly supported by the encryption tool. ` +
+              `Proceed using UTF-8 instead?`,
+              "Yes", "No"
+            );
+
+            if (proceed !== "Yes") {
+              vscode.window.showInformationMessage("Encryption cancelled.");
+              return;
+            }
+          }
+
           // Handle text file encryption
           const text = document.getText();
           const lines = text.split(/\r?\n/);
@@ -25,7 +42,10 @@ export function activate(context: vscode.ExtensionContext) {
               if (line.trim() === "") {
                 return line;
               }
-              const encrypted = await encryptionService.encryptText(line);
+              const encrypted = await encryptionService.encryptText(
+                line,
+                encodingResult.encoding as any
+              );
               return Buffer.from(encrypted.data).toString("base64");
             })
           );
@@ -39,8 +59,19 @@ export function activate(context: vscode.ExtensionContext) {
           });
         } else {
           // Handle binary file encryption
-          await fileManager.encryptFile(document.uri);
+
           vscode.window.showInformationMessage(`File encrypted: ${filePath}.enc`);
+        }
+      } else {
+        const activateTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+        if (activateTab && activateTab.input) {
+          if (activateTab.input instanceof vscode.TabInputText ||
+            activateTab.input instanceof vscode.TabInputCustom ||
+            activateTab.input instanceof vscode.TabInputNotebook) {
+            const uri = activateTab.input.uri;
+            await fileManager.encryptFile(uri);
+            vscode.window.showInformationMessage(`File encrypted: ${uri.fsPath}.enc`);
+          }
         }
       }
     }
@@ -55,6 +86,23 @@ export function activate(context: vscode.ExtensionContext) {
         const filePath = document.uri.fsPath;
 
         if (isTextFile(filePath, config)) {
+          // Get document encoding
+          const documentEncoding = getDocumentEncoding(document);
+          const encodingResult = mapVSCodeEncodingToTextEncoding(documentEncoding);
+
+          if (!encodingResult.supported) {
+            const proceed = await vscode.window.showWarningMessage(
+              `The encoding '${documentEncoding}' for this file is not directly supported by the decryption tool. ` +
+              `Proceed using UTF-8 instead?`,
+              "Yes", "No"
+            );
+
+            if (proceed !== "Yes") {
+              vscode.window.showInformationMessage("Decryption cancelled.");
+              return;
+            }
+          }
+
           // Handle text file decryption
           const text = document.getText();
           const lines = text.split(/\r?\n/);
@@ -66,7 +114,10 @@ export function activate(context: vscode.ExtensionContext) {
 
               try {
                 const buffer = Buffer.from(line, "base64");
-                return await encryptionService.decryptText(buffer);
+                return await encryptionService.decryptText(
+                  buffer,
+                  encodingResult.encoding as any
+                );
               } catch (e) {
                 // If this is the first error we encounter, it might be due to wrong password
                 if (index === lines.findIndex((l) => l.trim() !== "")) {
@@ -90,6 +141,22 @@ export function activate(context: vscode.ExtensionContext) {
           if (filePath.endsWith('.enc')) {
             await fileManager.decryptFile(document.uri);
             vscode.window.showInformationMessage(`File decrypted: ${filePath.slice(0, -4)}`);
+          } else {
+            vscode.window.showErrorMessage(
+              "This doesn't appear to be an encrypted binary file (.enc extension expected)"
+            );
+          }
+        }
+      }
+      const activateTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+      if (activateTab && activateTab.input) {
+        if (activateTab.input instanceof vscode.TabInputText ||
+          activateTab.input instanceof vscode.TabInputCustom ||
+          activateTab.input instanceof vscode.TabInputNotebook) {
+          const uri = activateTab.input.uri;
+          await fileManager.decryptFile(uri);
+          if (uri.fsPath.endsWith('.enc')) {
+            vscode.window.showInformationMessage(`File decrypted: ${uri.fsPath.slice(0, -4)}`);
           } else {
             vscode.window.showErrorMessage(
               "This doesn't appear to be an encrypted binary file (.enc extension expected)"

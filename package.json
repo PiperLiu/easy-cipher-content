@@ -112,7 +112,8 @@
             ".conf",
             ".toml",
             ".rst",
-            ".tex"
+            ".tex",
+            ".gitignore"
           ],
           "description": "Extensions of files that should be treated as text files"
         },
