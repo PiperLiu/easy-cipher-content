@@ -39,6 +39,16 @@
         "command": "easy-cipher-content.decryptWorkspace",
         "title": "🔓 Decrypt All Files in Workspace",
         "icon": "$(unlock)"
+      },
+      {
+        "command": "easy-cipher-content.encryptSpecificFiles",
+        "title": "🔒 Encrypt Specific Files or Directories",
+        "icon": "$(lock)"
+      },
+      {
+        "command": "easy-cipher-content.decryptSpecificFiles",
+        "title": "🔓 Decrypt Specific Files or Directories",
+        "icon": "$(unlock)"
       }
     ],
     "menus": {

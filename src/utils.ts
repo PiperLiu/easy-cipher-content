@@ -69,7 +69,7 @@ export function mapVSCodeEncodingToTextEncoding(encoding?: string): { supported:
   if (!encoding) {
     return { supported: true, encoding: 'utf-8' }; // Default to UTF-8
   }
-  
+
   // Map VS Code encodings to TextEncoding values supported by easy-cipher-mate
   const encodingMap: Record<string, string> = {
     'utf8': 'utf-8',
@@ -81,9 +81,9 @@ export function mapVSCodeEncodingToTextEncoding(encoding?: string): { supported:
     'latin1': 'latin1',
     'binary': 'binary'
   };
-  
+
   const supportedEncoding = encodingMap[encoding.toLowerCase()];
-  
+
   return {
     supported: !!supportedEncoding,
     encoding: supportedEncoding

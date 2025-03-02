@@ -193,10 +193,38 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  let encryptSpecificFilesDisposable = vscode.commands.registerCommand(
+    "easy-cipher-content.encryptSpecificFiles",
+    async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        const rootPath = workspaceFolders[0].uri;
+        await fileManager.processMultiplePaths("encrypt", rootPath);
+      } else {
+        vscode.window.showErrorMessage("No workspace folder is open");
+      }
+    }
+  );
+
+  let decryptSpecificFilesDisposable = vscode.commands.registerCommand(
+    "easy-cipher-content.decryptSpecificFiles",
+    async () => {
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        const rootPath = workspaceFolders[0].uri;
+        await fileManager.processMultiplePaths("decrypt", rootPath);
+      } else {
+        vscode.window.showErrorMessage("No workspace folder is open");
+      }
+    }
+  );
+
   context.subscriptions.push(encryptDisposable);
   context.subscriptions.push(decryptDisposable);
   context.subscriptions.push(encryptWorkspaceDisposable);
   context.subscriptions.push(decryptWorkspaceDisposable);
+  context.subscriptions.push(encryptSpecificFilesDisposable);
+  context.subscriptions.push(decryptSpecificFilesDisposable);
 }
 
 export function deactivate() { }

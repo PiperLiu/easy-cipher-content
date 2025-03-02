@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { EncryptionService } from 'easy-cipher-mate';
 import { isTextFile, getTargetFilePath, parseIgnoreFile, shouldIgnore, mapVSCodeEncodingToTextEncoding } from './utils';
 
@@ -203,6 +205,234 @@ export class FileManager {
         }
 
         incrementProgress();
+      }
+    }
+  }
+
+  /**
+   * Process specific file or directory based on provided path
+   */
+  async processSpecificPath(
+    inputPath: string,
+    operation: 'encrypt' | 'decrypt',
+    workspaceRoot: vscode.Uri
+  ): Promise<boolean> {
+    try {
+      // Normalize the path and resolve relative paths
+      let fullPath = inputPath.trim();
+
+      // Check if the path is absolute
+      if (!path.isAbsolute(fullPath)) {
+        // If relative, resolve against the workspace root
+        fullPath = path.join(workspaceRoot.fsPath, fullPath);
+      }
+
+      const fileUri = vscode.Uri.file(fullPath);
+
+      // Check if the path exists
+      try {
+        const stat = await vscode.workspace.fs.stat(fileUri);
+
+        if (stat.type === vscode.FileType.File) {
+          // Process single file
+          if (isTextFile(fullPath, this.config)) {
+            await this.processTextFile(fileUri, operation);
+          } else if (operation === 'encrypt') {
+            await this.encryptFile(fileUri);
+          } else if (fullPath.endsWith('.enc')) {
+            await this.decryptFile(fileUri);
+          } else {
+            vscode.window.showWarningMessage(
+              `Skipping non-encrypted file: ${fullPath}`
+            );
+            return false;
+          }
+
+          vscode.window.showInformationMessage(`Successfully ${operation === 'encrypt' ? 'encrypted' : 'decrypted'}: ${fullPath}`);
+          return true;
+        } else if (stat.type === vscode.FileType.Directory) {
+          // Process directory
+          const ignorePatterns = await parseIgnoreFile(workspaceRoot);
+
+          return vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `${operation === 'encrypt' ? 'Encrypting' : 'Decrypting'} files in ${fullPath}...`,
+            cancellable: true
+          }, async (progress, token) => {
+            let processedCount = 0;
+            const incrementProgress = () => {
+              processedCount++;
+              progress.report({ message: `Processed ${processedCount} files` });
+            };
+
+            await this.processDirectory(fileUri, operation, ignorePatterns, incrementProgress, token);
+
+            vscode.window.showInformationMessage(
+              `${operation === 'encrypt' ? 'Encrypted' : 'Decrypted'} ${processedCount} files in ${fullPath}`
+            );
+            return true;
+          });
+        } else {
+          vscode.window.showErrorMessage(`Unsupported file type for path: ${fullPath}`);
+          return false;
+        }
+      } catch (error) {
+        vscode.window.showErrorMessage(`Path does not exist or cannot be accessed: ${fullPath}`);
+        return false;
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Error processing path ${inputPath}: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+  }
+
+  /**
+   * Get suggestions for paths in the current workspace
+   */
+  private async getPathSuggestions(workspaceRoot: vscode.Uri, includeFiles: boolean = true): Promise<string[]> {
+    const suggestions: string[] = [];
+
+    if (!workspaceRoot) {
+      return suggestions;
+    }
+
+    try {
+      // Add root workspace folder
+      suggestions.push('.');
+
+      // Get top-level directories and optionally files
+      const entries = await vscode.workspace.fs.readDirectory(workspaceRoot);
+
+      for (const [name, type] of entries) {
+        // Skip hidden files/directories
+        if (name.startsWith('.')) {
+          continue;
+        }
+
+        // Add directories
+        if (type === vscode.FileType.Directory) {
+          suggestions.push(name);
+
+          // Add some common subdirectories
+          try {
+            const subDirUri = vscode.Uri.joinPath(workspaceRoot, name);
+            const subEntries = await vscode.workspace.fs.readDirectory(subDirUri);
+
+            for (const [subName, subType] of subEntries) {
+              if (subType === vscode.FileType.Directory && !subName.startsWith('.')) {
+                suggestions.push(path.join(name, subName));
+              }
+            }
+          } catch (err) {
+            // Skip if we can't read the subdirectory
+          }
+        }
+        // Add files if requested
+        else if (includeFiles && type === vscode.FileType.File) {
+          suggestions.push(name);
+        }
+      }
+
+      // Sort suggestions
+      return suggestions.sort();
+    } catch (error) {
+      console.error('Error getting path suggestions:', error);
+      return suggestions;
+    }
+  }
+
+  /**
+   * Handle multiple paths in a session with path suggestions
+   */
+  async processMultiplePaths(
+    operation: 'encrypt' | 'decrypt',
+    workspaceRoot: vscode.Uri
+  ): Promise<void> {
+    let continueSession = true;
+    const pathSuggestions = await this.getPathSuggestions(workspaceRoot);
+
+    while (continueSession) {
+      // Use QuickPick instead of InputBox for better UX with suggestions
+      const quickPick = vscode.window.createQuickPick();
+      quickPick.placeholder = `Enter path to ${operation} (relative to workspace or absolute)`;
+      quickPick.title = `Select or enter path to ${operation === 'encrypt' ? 'encrypt' : 'decrypt'}`;
+      quickPick.items = pathSuggestions.map(p => ({ label: p }));
+      quickPick.canSelectMany = false;
+      quickPick.ignoreFocusOut = true;
+
+      // Add custom input option
+      quickPick.items = [
+        { label: '$(edit) Enter custom path...', description: 'Type a custom path not in the suggestions' },
+        { label: '$(folder) Browse...', description: 'Select a folder or file using the file explorer' },
+        { kind: vscode.QuickPickItemKind.Separator, label: 'Suggested paths:' },
+        ...quickPick.items
+      ];
+
+      // Show the QuickPick
+      quickPick.show();
+
+      const selection = await new Promise<string | undefined>(resolve => {
+        quickPick.onDidAccept(() => {
+          const selected = quickPick.selectedItems[0];
+
+          if (selected) {
+            if (selected.label === '$(edit) Enter custom path...') {
+              quickPick.dispose();
+              // Show input box instead
+              vscode.window.showInputBox({
+                prompt: `Enter path to ${operation} (relative to workspace or absolute)`,
+                placeHolder: 'e.g., src/data or /Users/username/project/data',
+                ignoreFocusOut: true
+              }).then(resolve);
+            } else if (selected.label === '$(folder) Browse...') {
+              quickPick.dispose();
+              // Show file picker
+              vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: `Select to ${operation}`
+              }).then(uris => {
+                if (uris && uris.length > 0) {
+                  // Convert absolute path to relative if possible
+                  const absolutePath = uris[0].fsPath;
+                  const relativePath = vscode.workspace.asRelativePath(absolutePath);
+                  resolve(relativePath);
+                } else {
+                  resolve(undefined);
+                }
+              });
+            } else {
+              resolve(selected.label);
+              quickPick.dispose();
+            }
+          } else {
+            resolve(undefined);
+            quickPick.dispose();
+          }
+        });
+
+        quickPick.onDidHide(() => {
+          resolve(undefined);
+          quickPick.dispose();
+        });
+      });
+
+      if (!selection) {
+        // User canceled
+        continueSession = false;
+        continue;
+      }
+
+      await this.processSpecificPath(selection, operation, workspaceRoot);
+
+      // Ask if the user wants to continue
+      const continueResponse = await vscode.window.showQuickPick(['Yes', 'No'], {
+        placeHolder: `Process another path with ${operation} operation?`
+      });
+
+      if (continueResponse !== 'Yes') {
+        continueSession = false;
       }
     }
   }
