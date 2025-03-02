@@ -3,8 +3,8 @@
   "icon": "resource/icon.png",
   "displayName": "Easy Cipher Content",
   "description": "A powerful VS Code extension for securing both text and binary files with industry-standard encryption algorithms. Easily protect your sensitive data while maintaining a seamless workflow in your development environment.",
-  "version": "0.0.1",
-  "publisher": "PiperLiu",
+  "version": "1.0.0",
+  "publisher": "piperliu",
   "repository": {
     "type": "git",
     "url": "https://github.com/PiperLiu/easy-cipher-content"
