@@ -2,6 +2,8 @@
 
 A powerful VS Code extension for securing both text and binary files with industry-standard encryption algorithms. Easily protect your sensitive data while maintaining a seamless workflow in your development environment.
 
+![Encrypt / Decrypt One File](./docs/example.file.gif)
+
 ## Features
 
 - 🔒 **Encrypt** and 🔓 **Decrypt** content with a single click
@@ -69,7 +71,7 @@ When choosing specific files or directories to process, you have three convenien
 2. **Custom Path**: Enter a custom path relative to your workspace or an absolute path
 3. **File Browser**: Use the integrated file picker to visually select files or folders
 
-![Path Selection Interface](https://raw.githubusercontent.com/PiperLiu/easy-cipher-content/main/images/path-selection.png)
+![Path Selection Interface](./docs/example.path.gif)
 
 ### Ignoring Files and Directories
 
