@@ -43,9 +43,8 @@ function readJsonConfig<T>(jsonPath: string): T {
     return JSON.parse(fs.readFileSync(jsonPath, "utf-8")) as T;
   } catch (e) {
     console.warn(
-      `Failed to read json config from ${jsonPath}, using default value`
+      `Failed to read json config from ${jsonPath}, using default value. Error: ${e}`
     );
-  } finally {
     return {} as T;
   }
 }
