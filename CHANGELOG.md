@@ -1,9 +1,5 @@
-# Change Log
+## 1.0.1
+- Fix error loading json file
 
-All notable changes to the "easy-cipher-content" extension will be documented in this file.
-
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
-
-## [Unreleased]
-
+## 1.0.0
 - Initial release
