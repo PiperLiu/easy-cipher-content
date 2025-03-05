@@ -147,20 +147,21 @@ export function activate(context: vscode.ExtensionContext) {
             );
           }
         }
-      }
-      const activateTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-      if (activateTab && activateTab.input) {
-        if (activateTab.input instanceof vscode.TabInputText ||
-          activateTab.input instanceof vscode.TabInputCustom ||
-          activateTab.input instanceof vscode.TabInputNotebook) {
-          const uri = activateTab.input.uri;
-          await fileManager.decryptFile(uri);
-          if (uri.fsPath.endsWith('.enc')) {
-            vscode.window.showInformationMessage(`File decrypted: ${uri.fsPath.slice(0, -4)}`);
-          } else {
-            vscode.window.showErrorMessage(
-              "This doesn't appear to be an encrypted binary file (.enc extension expected)"
-            );
+      } else {
+        const activateTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+        if (activateTab && activateTab.input) {
+          if (activateTab.input instanceof vscode.TabInputText ||
+            activateTab.input instanceof vscode.TabInputCustom ||
+            activateTab.input instanceof vscode.TabInputNotebook) {
+            const uri = activateTab.input.uri;
+            await fileManager.decryptFile(uri);
+            if (uri.fsPath.endsWith('.enc')) {
+              vscode.window.showInformationMessage(`File decrypted: ${uri.fsPath.slice(0, -4)}`);
+            } else {
+              vscode.window.showErrorMessage(
+                "This doesn't appear to be an encrypted binary file (.enc extension expected)"
+              );
+            }
           }
         }
       }
