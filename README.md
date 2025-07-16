@@ -13,6 +13,7 @@ A powerful VS Code extension for securing both text and binary files with indust
 - 🚫 Configurable ignore patterns for excluding files from batch operations
 - 🔐 Enterprise-grade encryption algorithms: AES-GCM and ChaCha20-Poly1305
 - 🛠️ Flexible key management via environment variables or JSON configuration
+- 🔑 **Enhanced Security**: Automatic salt and IV/nonce generation for maximum security
 
 ## Getting Started
 
@@ -28,20 +29,25 @@ A powerful VS Code extension for securing both text and binary files with indust
 Configure your encryption keys using one of these methods:
 
 **Environment Variables** (Recommended for security)
-```
+```bash
 # For AES-GCM
 export VSCODE_EXT_ECC_AESGCM_PASSWORD="your-secure-password"
-export VSCODE_EXT_ECC_AESGCM_SALT="your-salt-value"
-export VSCODE_EXT_ECC_AESGCM_IV="your-initialization-vector"
 
 # For ChaCha20-Poly1305
 export VSCODE_EXT_ECC_CHACHA20POLY1305_PASSWORD="your-secure-password"
-export VSCODE_EXT_ECC_CHACHA20POLY1305_SALT="your-salt-value"
-export VSCODE_EXT_ECC_CHACHA20POLY1305_NONCE="your-nonce-value"
 ```
 
 **JSON Configuration**
-Create a JSON file with your encryption keys and set the path in the extension settings.
+Create a JSON file with your encryption keys and set the path in the extension settings:
+
+```json
+{
+  "password": "your-secure-password",
+  "textEncoding": "utf-8"
+}
+```
+
+> **🔒 Security Enhancement**: Starting with easy-cipher-mate@2.0.0, salt and IV/nonce values are automatically generated for each encryption operation, ensuring maximum security without manual configuration.
 
 ## Usage
 
@@ -102,8 +108,18 @@ This extension provides the following settings:
 - Use **environment variables** rather than JSON files for key management when possible
 - Set up a secure method for sharing encryption keys with team members
 - Consider using different keys for different projects or types of sensitive data
+- **Automatic Security**: The extension automatically generates unique salt and IV/nonce values for each encryption operation, ensuring maximum security
 
 ## Technical Details
+
+### Enhanced Security Features
+
+- **Automatic Salt Generation**: Each encryption operation uses a randomly generated 16-byte salt
+- **Automatic IV/Nonce Generation**: 
+  - AES-GCM: 12-byte random IV per operation
+  - ChaCha20-Poly1305: 12-byte random nonce per operation
+- **PBKDF2 Key Derivation**: Uses 100,000 iterations for secure key derivation
+- **Authenticated Encryption**: Built-in integrity protection prevents tampering
 
 ### Text File Encryption
 
@@ -111,10 +127,19 @@ Text files are processed line by line, with each non-empty line encrypted indivi
 - Preserves file structure and line breaks
 - Makes diff tools still useful for encrypted files
 - Allows partial decryption if only certain lines need to be accessible
+- Each line gets its own unique salt and IV/nonce for maximum security
 
 ### Binary File Encryption
 
 Binary files are encrypted as complete units, resulting in a new file with the `.enc` extension.
+
+## Migration from Previous Versions
+
+If you're upgrading from a previous version that required manual salt/IV configuration:
+
+1. **Remove old environment variables**: You no longer need to set salt, IV, or nonce values
+2. **Update JSON configuration**: Remove salt, IV, and nonce fields from your JSON config files
+3. **Re-encrypt existing files**: Files encrypted with the old version will need to be decrypted with the old configuration and re-encrypted with the new version for enhanced security
 
 ## Known Issues
 
@@ -129,6 +154,9 @@ Binary files are encrypted as complete units, resulting in a new file with the `
 
 **Issue**: Binary files are being treated as text files
 **Solution**: Add the file extension to the `textFileExtensions` setting if it should be treated as text, or remove it if it should be treated as binary
+
+**Issue**: Files encrypted with older versions cannot be decrypted
+**Solution**: Use the previous version of the extension to decrypt, then re-encrypt with the new version for enhanced security
 
 ## Contributing
 
@@ -146,7 +174,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Acknowledgments
 
-- Built with [easy-cipher-mate](https://github.com/PiperLiu/easy-cipher-mate) encryption library
+- Built with [easy-cipher-mate](https://github.com/PiperLiu/easy-cipher-mate) encryption library v2.0.0+
 - Inspired by the need for simple but secure content protection in VS Code
 
 ---

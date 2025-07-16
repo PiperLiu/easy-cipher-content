@@ -1,14 +1,14 @@
 import * as vscode from "vscode";
 import {
   AESGCMEncryption,
+  AESGCMEncryptionConfig,
   IAESGCMEncryptionConfig,
   ChaCha20Poly1305Encryption,
+  ChaCha20Poly1305EncryptionConfig,
   IChaCha20Poly1305EncryptionConfig,
   IEncryptionAlgorithm,
   EncryptionConfigType,
   EncryptionService,
-  deriveStringToUint8Array,
-  deriveStringToBuffer,
 } from "easy-cipher-mate";
 import * as fs from "fs";
 
@@ -49,69 +49,31 @@ function readJsonConfig<T>(jsonPath: string): T {
   }
 }
 
-class CustomAESGCMEncryptionConfig implements IAESGCMEncryptionConfig {
-  password: string;
-  salt: Uint8Array;
-  iv: Uint8Array;
+function createAESGCMConfigFromEnv(): AESGCMEncryptionConfig {
+  const password = getAndWarnIfEmpty(
+    process.env.VSCODE_EXT_ECC_AESGCM_PASSWORD,
+    "easy-cipher-content-password",
+    "ENV::VSCODE_EXT_ECC_AESGCM_PASSWORD"
+  );
+  
+  return new AESGCMEncryptionConfig(password, 'utf-8');
+}
 
-  constructor(password: string, salt: Uint8Array, iv: Uint8Array) {
-    this.password = password;
-    this.salt = salt;
-    this.iv = iv;
-  }
-
-  static constructFromEnv(): CustomAESGCMEncryptionConfig {
-    return new CustomAESGCMEncryptionConfig(
-      getAndWarnIfEmpty(
-        process.env.VSCODE_EXT_ECC_AESGCM_PASSWORD,
-        "easy-cipher-content-password",
-        "ENV::VSCODE_EXT_ECC_AESGCM_PASSWORD"
-      ),
-      deriveStringToUint8Array(
-        getAndWarnIfEmpty(
-          process.env.VSCODE_EXT_ECC_AESGCM_SALT,
-          "easy-cipher-content-salt",
-          "ENV::VSCODE_EXT_ECC_AESGCM_SALT"
-        ),
-        16
-      ),
-      deriveStringToUint8Array(
-        getAndWarnIfEmpty(
-          process.env.VSCODE_EXT_ECC_AESGCM_IV,
-          "easy-cipher-content-iv",
-          "ENV::VSCODE_EXT_ECC_AESGCM_IV"
-        ),
-        12
-      )
-    );
-  }
-
-  static constructFromJson(jsonPath: string): CustomAESGCMEncryptionConfig {
-    const jsonConfig = readJsonConfig<{
-      password?: string;
-      salt?: string;
-      iv?: string;
-    }>(jsonPath);
-    return new CustomAESGCMEncryptionConfig(
-      getAndWarnIfEmpty(
-        jsonConfig.password,
-        "easy-cipher-content-password",
-        "JSON::password"
-      ),
-      deriveStringToUint8Array(
-        getAndWarnIfEmpty(
-          jsonConfig.salt,
-          "easy-cipher-content-salt",
-          "JSON::salt"
-        ),
-        16
-      ),
-      deriveStringToUint8Array(
-        getAndWarnIfEmpty(jsonConfig.iv, "easy-cipher-content-iv", "JSON::iv"),
-        12
-      )
-    );
-  }
+function createAESGCMConfigFromJson(jsonPath: string): AESGCMEncryptionConfig {
+  const jsonConfig = readJsonConfig<{
+    password?: string;
+    textEncoding?: string;
+  }>(jsonPath);
+  
+  const password = getAndWarnIfEmpty(
+    jsonConfig.password,
+    "easy-cipher-content-password",
+    "JSON::password"
+  );
+  
+  const textEncoding = jsonConfig.textEncoding || 'utf-8';
+  
+  return new AESGCMEncryptionConfig(password, textEncoding as any);
 }
 
 function AESGCMServiceFactory(
@@ -120,87 +82,40 @@ function AESGCMServiceFactory(
   if (userPassInVscodeConfig.use_env) {
     return new EncryptionService(
       new AESGCMEncryption(),
-      CustomAESGCMEncryptionConfig.constructFromEnv()
+      createAESGCMConfigFromEnv()
     );
   }
   return new EncryptionService(
     new AESGCMEncryption(),
-    CustomAESGCMEncryptionConfig.constructFromJson(
-      userPassInVscodeConfig.json_path
-    )
+    createAESGCMConfigFromJson(userPassInVscodeConfig.json_path)
   );
 }
 
-class CustomChaCha20Poly1305EncryptionConfig
-  implements IChaCha20Poly1305EncryptionConfig {
-  password: string;
-  salt: Buffer;
-  nonce: Buffer;
+function createChaCha20Poly1305ConfigFromEnv(): ChaCha20Poly1305EncryptionConfig {
+  const password = getAndWarnIfEmpty(
+    process.env.VSCODE_EXT_ECC_CHACHA20POLY1305_PASSWORD,
+    "easy-cipher-content-password",
+    "ENV::VSCODE_EXT_ECC_CHACHA20POLY1305_PASSWORD"
+  );
+  
+  return new ChaCha20Poly1305EncryptionConfig(password, 'utf-8');
+}
 
-  constructor(password: string, salt: Buffer, nonce: Buffer) {
-    this.password = password;
-    this.salt = salt;
-    this.nonce = nonce;
-  }
-
-  static constructFromEnv(): CustomChaCha20Poly1305EncryptionConfig {
-    return new CustomChaCha20Poly1305EncryptionConfig(
-      getAndWarnIfEmpty(
-        process.env.VSCODE_EXT_ECC_CHACHA20POLY1305_PASSWORD,
-        "easy-cipher-content-password",
-        "ENV::VSCODE_EXT_ECC_CHACHA20POLY1305_PASSWORD"
-      ),
-      deriveStringToBuffer(
-        getAndWarnIfEmpty(
-          process.env.VSCODE_EXT_ECC_CHACHA20POLY1305_SALT,
-          "easy-cipher-content-salt",
-          "ENV::VSCODE_EXT_ECC_CHACHA20POLY1305_SALT"
-        ),
-        16
-      ),
-      deriveStringToBuffer(
-        getAndWarnIfEmpty(
-          process.env.VSCODE_EXT_ECC_CHACHA20POLY1305_NONCE,
-          "easy-cipher-content-nonce",
-          "ENV::VSCODE_EXT_ECC_CHACHA20POLY1305_NONCE"
-        ),
-        ChaCha20Poly1305Encryption.NONCE_LENGTH
-      )
-    );
-  }
-
-  static constructFromJson(
-    jsonPath: string
-  ): CustomChaCha20Poly1305EncryptionConfig {
-    const jsonConfig = readJsonConfig<{
-      password?: string;
-      salt?: string;
-      nonce?: string;
-    }>(jsonPath);
-    return new CustomChaCha20Poly1305EncryptionConfig(
-      getAndWarnIfEmpty(
-        jsonConfig.password,
-        "easy-cipher-content-password",
-        "JSON::password"
-      ),
-      deriveStringToBuffer(
-        getAndWarnIfEmpty(
-          jsonConfig.salt,
-          "easy-cipher-content-salt",
-          "JSON::salt"
-        ),
-        16
-      ),
-      deriveStringToBuffer(
-        getAndWarnIfEmpty(
-          jsonConfig.nonce,
-          "easy-cipher-content-nonce",
-          "JSON::nonce"
-        ),
-        ChaCha20Poly1305Encryption.NONCE_LENGTH
-      )
-    );
-  }
+function createChaCha20Poly1305ConfigFromJson(jsonPath: string): ChaCha20Poly1305EncryptionConfig {
+  const jsonConfig = readJsonConfig<{
+    password?: string;
+    textEncoding?: string;
+  }>(jsonPath);
+  
+  const password = getAndWarnIfEmpty(
+    jsonConfig.password,
+    "easy-cipher-content-password",
+    "JSON::password"
+  );
+  
+  const textEncoding = jsonConfig.textEncoding || 'utf-8';
+  
+  return new ChaCha20Poly1305EncryptionConfig(password, textEncoding as any);
 }
 
 function ChaCha20Poly1305ServiceFactory(
@@ -212,14 +127,12 @@ function ChaCha20Poly1305ServiceFactory(
   if (userPassInVscodeConfig.use_env) {
     return new EncryptionService(
       new ChaCha20Poly1305Encryption(),
-      CustomChaCha20Poly1305EncryptionConfig.constructFromEnv()
+      createChaCha20Poly1305ConfigFromEnv()
     );
   }
   return new EncryptionService(
     new ChaCha20Poly1305Encryption(),
-    CustomChaCha20Poly1305EncryptionConfig.constructFromJson(
-      userPassInVscodeConfig.json_path
-    )
+    createChaCha20Poly1305ConfigFromJson(userPassInVscodeConfig.json_path)
   );
 }
 
