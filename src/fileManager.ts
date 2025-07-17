@@ -1,16 +1,21 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { EncryptionService } from 'easy-cipher-mate';
 import { isTextFile, getTargetFilePath, parseIgnoreFile, shouldIgnore, mapVSCodeEncodingToTextEncoding } from './utils';
 
 export class FileManager {
   private encryptionService: EncryptionService<any, any>;
   private config: vscode.WorkspaceConfiguration;
+  private fs: vscode.FileSystem;
 
-  constructor(encryptionService: EncryptionService<any, any>, config: vscode.WorkspaceConfiguration) {
+  constructor(
+    encryptionService: EncryptionService<any, any>,
+    config: vscode.WorkspaceConfiguration,
+    fs: vscode.FileSystem = vscode.workspace.fs
+  ) {
     this.encryptionService = encryptionService;
     this.config = config;
+    this.fs = fs;
   }
 
   /**
@@ -18,7 +23,7 @@ export class FileManager {
    */
   async encryptFile(fileUri: vscode.Uri): Promise<void> {
     try {
-      const fileBuffer = await vscode.workspace.fs.readFile(fileUri);
+      const fileBuffer = await this.fs.readFile(fileUri);
       if (fileBuffer.length === 0) {
         vscode.window.showWarningMessage(`Empty file: ${fileUri.fsPath}, skipping encryption.`);
         return;
@@ -29,12 +34,12 @@ export class FileManager {
 
       // Write encrypted data to the .enc file
       const targetPath = vscode.Uri.file(getTargetFilePath(fileUri.fsPath, 'encrypt'));
-      await vscode.workspace.fs.writeFile(targetPath, new Uint8Array(encrypted.data));
+      await this.fs.writeFile(targetPath, new Uint8Array(encrypted.data));
 
       // Delete original file if configured to do so
       const deleteOriginal = this.config.get<boolean>('deleteOriginalAfterEncryption', true);
       if (deleteOriginal) {
-        await vscode.workspace.fs.delete(fileUri);
+        await this.fs.delete(fileUri);
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Error encrypting file: ${error instanceof Error ? error.message : String(error)}`);
@@ -47,17 +52,17 @@ export class FileManager {
    */
   async decryptFile(fileUri: vscode.Uri): Promise<void> {
     try {
-      const encryptedBuffer = await vscode.workspace.fs.readFile(fileUri);
+      const encryptedBuffer = await this.fs.readFile(fileUri);
       const decrypted = await this.encryptionService.decryptFile(encryptedBuffer.buffer);
 
       // Write decrypted data to file without .enc extension
       const targetPath = vscode.Uri.file(getTargetFilePath(fileUri.fsPath, 'decrypt'));
-      await vscode.workspace.fs.writeFile(targetPath, new Uint8Array(decrypted));
+      await this.fs.writeFile(targetPath, new Uint8Array(decrypted));
 
       // Delete encrypted file if configured to do so
       const deleteOriginal = this.config.get<boolean>('deleteOriginalAfterEncryption', true);
       if (deleteOriginal) {
-        await vscode.workspace.fs.delete(fileUri);
+        await this.fs.delete(fileUri);
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Error decrypting file: ${error instanceof Error ? error.message : String(error)}`);
@@ -77,7 +82,7 @@ export class FileManager {
         // Continue with UTF-8 as fallback
       }
 
-      const fileContent = await vscode.workspace.fs.readFile(fileUri);
+      const fileContent = await this.fs.readFile(fileUri);
       // Use document encoding if provided, otherwise detect from file content
       const text = Buffer.from(fileContent).toString(encodingResult.encoding as BufferEncoding || 'utf-8');
       const lines = text.split(/\r?\n/);
@@ -104,7 +109,7 @@ export class FileManager {
       );
 
       const processedContent = processedLines.join('\n');
-      await vscode.workspace.fs.writeFile(fileUri, Buffer.from(processedContent, encodingResult.encoding as BufferEncoding || 'utf-8'));
+      await this.fs.writeFile(fileUri, Buffer.from(processedContent, encodingResult.encoding as BufferEncoding || 'utf-8'));
     } catch (error) {
       vscode.window.showErrorMessage(`Error processing text file: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -162,7 +167,7 @@ export class FileManager {
       }
     }
 
-    const entries = await vscode.workspace.fs.readDirectory(dirUri);
+    const entries = await this.fs.readDirectory(dirUri);
 
     for (const [name, type] of entries) {
       if (token.isCancellationRequested) {
@@ -231,7 +236,7 @@ export class FileManager {
 
       // Check if the path exists
       try {
-        const stat = await vscode.workspace.fs.stat(fileUri);
+        const stat = await this.fs.stat(fileUri);
 
         if (stat.type === vscode.FileType.File) {
           // Process single file
@@ -301,7 +306,7 @@ export class FileManager {
       suggestions.push('.');
 
       // Get top-level directories and optionally files
-      const entries = await vscode.workspace.fs.readDirectory(workspaceRoot);
+      const entries = await this.fs.readDirectory(workspaceRoot);
 
       for (const [name, type] of entries) {
         // Skip hidden files/directories
@@ -316,7 +321,7 @@ export class FileManager {
           // Add some common subdirectories
           try {
             const subDirUri = vscode.Uri.joinPath(workspaceRoot, name);
-            const subEntries = await vscode.workspace.fs.readDirectory(subDirUri);
+            const subEntries = await this.fs.readDirectory(subDirUri);
 
             for (const [subName, subType] of subEntries) {
               if (subType === vscode.FileType.Directory && !subName.startsWith('.')) {
