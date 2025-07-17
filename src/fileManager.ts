@@ -2,11 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { EncryptionService } from 'easy-cipher-mate';
 import { isTextFile, getTargetFilePath, parseIgnoreFile, shouldIgnore, mapVSCodeEncodingToTextEncoding } from './utils';
+import { GitDiffService } from './services/gitDiffService';
 
 export class FileManager {
   private encryptionService: EncryptionService<any, any>;
   private config: vscode.WorkspaceConfiguration;
   private fs: vscode.FileSystem;
+  private gitDiffService: GitDiffService;
 
   constructor(
     encryptionService: EncryptionService<any, any>,
@@ -16,6 +18,7 @@ export class FileManager {
     this.encryptionService = encryptionService;
     this.config = config;
     this.fs = fs;
+    this.gitDiffService = new GitDiffService();
   }
 
   /**
@@ -87,16 +90,60 @@ export class FileManager {
       const text = Buffer.from(fileContent).toString(encodingResult.encoding as BufferEncoding || 'utf-8');
       const lines = text.split(/\r?\n/);
 
-      const processedLines = await Promise.all(
-        lines.map(async (line) => {
-          if (line.trim() === "") {
-            return line;
-          }
+      let processedLines: string[];
 
-          if (operation === 'encrypt') {
-            const encrypted = await this.encryptionService.encryptText(line, encodingResult.encoding as any);
-            return Buffer.from(encrypted.data).toString('base64');
-          } else {
+      if (operation === 'encrypt') {
+        // Check if git-diff-aware encryption is enabled
+        const enableGitDiffAware = this.config.get<boolean>('enableGitDiffAwareEncryption', true);
+        
+        if (enableGitDiffAware) {
+          // Use git-diff-aware encryption
+          const encryptionContext = await this.gitDiffService.createEncryptionContext(fileUri.fsPath, text, this.encryptionService, encodingResult.encoding);
+          
+          processedLines = await Promise.all(
+            lines.map(async (line, index) => {
+              const lineNumber = index + 1; // Convert to 1-based line number
+              
+              if (line.trim() === "") {
+                return line;
+              }
+              
+              // Check if we should re-encrypt this line
+              if (this.gitDiffService.shouldReEncryptLine(lineNumber, encryptionContext)) {
+                const encrypted = await this.encryptionService.encryptText(line, encodingResult.encoding as any);
+                return Buffer.from(encrypted.data).toString('base64');
+              } else {
+                // Use the original encrypted line
+                const originalEncrypted = this.gitDiffService.getOriginalEncryptedLine(lineNumber, encryptionContext);
+                if (originalEncrypted !== null) {
+                  return originalEncrypted;
+                } else {
+                  // Fallback to encrypting the line
+                  const encrypted = await this.encryptionService.encryptText(line, encodingResult.encoding as any);
+                  return Buffer.from(encrypted.data).toString('base64');
+                }
+              }
+            })
+          );
+        } else {
+          // Use traditional encryption (encrypt all lines)
+          processedLines = await Promise.all(
+            lines.map(async (line) => {
+              if (line.trim() === "") {
+                return line;
+              }
+              const encrypted = await this.encryptionService.encryptText(line, encodingResult.encoding as any);
+              return Buffer.from(encrypted.data).toString('base64');
+            })
+          );
+        }
+      } else {
+        // Decryption logic remains the same
+        processedLines = await Promise.all(
+          lines.map(async (line) => {
+            if (line.trim() === "") {
+              return line;
+            }
             try {
               const buffer = Buffer.from(line, 'base64');
               return await this.encryptionService.decryptText(buffer, encodingResult.encoding as any);
@@ -104,9 +151,9 @@ export class FileManager {
               // If failed to decrypt, return original line
               return line;
             }
-          }
-        })
-      );
+          })
+        );
+      }
 
       const processedContent = processedLines.join('\n');
       await this.fs.writeFile(fileUri, Buffer.from(processedContent, encodingResult.encoding as BufferEncoding || 'utf-8'));

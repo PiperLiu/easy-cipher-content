@@ -2,11 +2,13 @@ import * as vscode from "vscode";
 import { encryptionServiceFactory } from "./encryption";
 import { FileManager } from "./fileManager";
 import { isTextFile, mapVSCodeEncodingToTextEncoding, getDocumentEncoding } from "./utils";
+import { GitDiffService } from "./services/gitDiffService";
 
 export function activate(context: vscode.ExtensionContext) {
   const config = vscode.workspace.getConfiguration("easy-cipher-content");
   const encryptionService = encryptionServiceFactory(config ?? {});
   const fileManager = new FileManager(encryptionService, config);
+  const gitDiffService = new GitDiffService();
 
   let encryptDisposable = vscode.commands.registerCommand(
     "easy-cipher-content.encrypt",
@@ -37,18 +39,62 @@ export function activate(context: vscode.ExtensionContext) {
           // Handle text file encryption
           const text = document.getText();
           const lines = text.split(/\r?\n/);
-          const encryptedLines = await Promise.all(
-            lines.map(async (line) => {
-              if (line.trim() === "") {
-                return line;
-              }
-              const encrypted = await encryptionService.encryptText(
-                line,
-                encodingResult.encoding as any
-              );
-              return Buffer.from(encrypted.data).toString("base64");
-            })
-          );
+          
+          // Check if git-diff-aware encryption is enabled
+          const enableGitDiffAware = config.get<boolean>('enableGitDiffAwareEncryption', true);
+          
+          let encryptedLines: string[];
+          
+          if (enableGitDiffAware) {
+            // Use git-diff-aware encryption
+            const encryptionContext = await gitDiffService.createEncryptionContext(filePath, text, encryptionService, encodingResult.encoding);
+            
+            encryptedLines = await Promise.all(
+              lines.map(async (line, index) => {
+                const lineNumber = index + 1; // Convert to 1-based line number
+                
+                if (line.trim() === "") {
+                  return line;
+                }
+                
+                // Check if we should re-encrypt this line
+                if (gitDiffService.shouldReEncryptLine(lineNumber, encryptionContext)) {
+                  const encrypted = await encryptionService.encryptText(
+                    line,
+                    encodingResult.encoding as any
+                  );
+                  return Buffer.from(encrypted.data).toString("base64");
+                } else {
+                  // Use the original encrypted line
+                  const originalEncrypted = gitDiffService.getOriginalEncryptedLine(lineNumber, encryptionContext);
+                  if (originalEncrypted !== null) {
+                    return originalEncrypted;
+                  } else {
+                    // Fallback to encrypting the line
+                    const encrypted = await encryptionService.encryptText(
+                      line,
+                      encodingResult.encoding as any
+                    );
+                    return Buffer.from(encrypted.data).toString("base64");
+                  }
+                }
+              })
+            );
+          } else {
+            // Use traditional encryption (encrypt all lines)
+            encryptedLines = await Promise.all(
+              lines.map(async (line) => {
+                if (line.trim() === "") {
+                  return line;
+                }
+                const encrypted = await encryptionService.encryptText(
+                  line,
+                  encodingResult.encoding as any
+                );
+                return Buffer.from(encrypted.data).toString("base64");
+              })
+            );
+          }
 
           editor.edit((editBuilder) => {
             const range = new vscode.Range(
