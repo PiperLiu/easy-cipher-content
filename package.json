@@ -3,7 +3,7 @@
   "icon": "resource/icon.png",
   "displayName": "Easy Cipher Content",
   "description": "A powerful VS Code extension for securing both text and binary files with industry-standard encryption algorithms. Easily protect your sensitive data while maintaining a seamless workflow in your development environment.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "publisher": "piperliu",
   "repository": {
     "type": "git",
@@ -137,6 +137,11 @@
           "type": "boolean",
           "default": true,
           "description": "Delete the original file after encryption (applies to binary files)"
+        },
+        "easy-cipher-content.enableGitDiffAwareEncryption": {
+          "type": "boolean",
+          "default": true,
+          "description": "When enabled, only re-encrypt lines that have changed according to git diff for text files. This helps maintain git history by preserving unchanged encrypted lines."
         }
       }
     }

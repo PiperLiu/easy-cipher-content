@@ -14,6 +14,7 @@ A powerful VS Code extension for securing both text and binary files with indust
 - 🔐 Enterprise-grade encryption algorithms: AES-GCM and ChaCha20-Poly1305
 - 🛠️ Flexible key management via environment variables or JSON configuration
 - 🔑 **Enhanced Security**: Automatic salt and IV/nonce generation for maximum security
+- 🔀 **Git-Diff-Aware Encryption**: Only re-encrypt lines that have changed according to git diff, preserving git history
 
 ## Getting Started
 
@@ -101,6 +102,7 @@ This extension provides the following settings:
 * `easy-cipher-content.textFileExtensions`: Array of file extensions to be treated as text files
 * `easy-cipher-content.ignoreFile`: Name of the file containing ignore patterns
 * `easy-cipher-content.deleteOriginalAfterEncryption`: Whether to delete original files after encryption
+* `easy-cipher-content.enableGitDiffAwareEncryption`: Enable git-diff-aware encryption for text files (default: true)
 
 ## Security Best Practices
 
@@ -128,6 +130,43 @@ Text files are processed line by line, with each non-empty line encrypted indivi
 - Makes diff tools still useful for encrypted files
 - Allows partial decryption if only certain lines need to be accessible
 - Each line gets its own unique salt and IV/nonce for maximum security
+
+### Git-Diff-Aware Encryption (New in v2.1.0)
+
+When `enableGitDiffAwareEncryption` is enabled (default), the extension intelligently handles text file encryption by only re-encrypting lines that have changed according to git diff. This feature:
+
+- **Preserves Git History**: Unchanged encrypted lines remain identical, making git diff meaningful even for encrypted files
+- **Optimizes Performance**: Only modified lines are re-encrypted, speeding up the encryption process
+- **Maintains Security**: Each re-encrypted line still gets unique salt and IV/nonce values
+
+#### How It Works
+
+1. **Git Repository Detection**: Automatically detects if the file is in a git repository
+2. **Change Analysis**: Uses `git diff` to identify which lines have been modified
+3. **Selective Encryption**: 
+   - **Changed lines**: Re-encrypted with new salt/IV values
+   - **Unchanged lines**: Preserved from the previous encrypted version
+   - **New files**: All lines are encrypted (fallback behavior)
+   - **Non-git projects**: All lines are encrypted (fallback behavior)
+
+#### Example Workflow
+
+```bash
+# Initial state: encrypted file in git
+git status  # clean
+
+# User decrypts, modifies line 14-15, then re-encrypts
+# Result: Only lines 14-15 are different in git diff
+git diff main.go
+# Shows only the actual changed encrypted lines, not the entire file
+```
+
+#### Edge Cases Handled
+
+- **New files**: All lines are encrypted when file is not tracked by git
+- **Non-git repositories**: Falls back to traditional full-file encryption
+- **Missing original content**: Falls back to encrypting all lines
+- **Git command failures**: Gracefully falls back to traditional encryption
 
 ### Binary File Encryption
 
