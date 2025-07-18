@@ -2,6 +2,8 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import { GitDiffService, EncryptionContext } from '../../services/gitDiffService';
 import * as vscode from 'vscode';
+import { EncryptionService } from 'easy-cipher-mate';
+import { TextEncoding } from 'easy-cipher-mate/lib/utils/encodingUtils';
 
 suite('GitDiffService Test Suite', () => {
   let service: GitDiffService;
@@ -11,8 +13,8 @@ suite('GitDiffService Test Suite', () => {
   const toBase64 = (s: string) => Buffer.from(s).toString('base64');
 
   // A simple mock encryption service for predictable test behavior.
-  const mockEncryptionService = {
-    decryptText: async (buffer: Buffer, encoding: string): Promise<string> => {
+  const mockEncryptionService: Partial<EncryptionService<any, any>> = {
+    decryptText: async (buffer: Buffer, encoding: TextEncoding): Promise<string> => {
       const text = buffer.toString(encoding as BufferEncoding);
       if (text.startsWith('enc(') && text.endsWith(')')) {
         return text.slice(4, -1);
@@ -55,7 +57,7 @@ suite('GitDiffService Test Suite', () => {
 
   test('should re-encrypt all lines when not in a git repository', async () => {
     setupStubs(false, true, []);
-    const context = await service.createEncryptionContext('file.txt', 'a\nb', mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', 'a\nb', mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.isGitRepo, false, 'Context should indicate not a git repo');
     assert.strictEqual(context.unchangedLinesMap.size, 0, 'Unchanged map should be empty');
@@ -65,7 +67,7 @@ suite('GitDiffService Test Suite', () => {
 
   test('should re-encrypt all lines for a new file', async () => {
     setupStubs(true, true, []);
-    const context = await service.createEncryptionContext('file.txt', 'a\nb', mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', 'a\nb', mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.isNewFile, true, 'Context should indicate a new file');
     assert.strictEqual(context.unchangedLinesMap.size, 0, 'Unchanged map should be empty');
@@ -78,7 +80,7 @@ suite('GitDiffService Test Suite', () => {
     const currentContent = 'a\nb\nc';
     setupStubs(true, false, originalEncrypted);
 
-    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.unchangedLinesMap.size, 3, 'All 3 lines should be in the unchanged map');
     assert.strictEqual(service.getOriginalEncryptedLine(1, context), originalEncrypted[0]);
@@ -91,7 +93,7 @@ suite('GitDiffService Test Suite', () => {
     const currentContent = 'a\nB\nc'; // Line 2 is modified
     setupStubs(true, false, originalEncrypted);
 
-    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.unchangedLinesMap.size, 2, 'Two lines should be unchanged');
     assert.strictEqual(service.shouldReEncryptLine(1, context), false, 'Line 1 should not be re-encrypted');
@@ -107,7 +109,7 @@ suite('GitDiffService Test Suite', () => {
     const currentContent = 'a\nb\nc'; // Line 'b' is inserted
     setupStubs(true, false, originalEncrypted);
 
-    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.unchangedLinesMap.size, 2, 'Two lines should be unchanged');
     assert.strictEqual(service.shouldReEncryptLine(1, context), false, 'Line 1 (a) should not be re-encrypted');
@@ -122,7 +124,7 @@ suite('GitDiffService Test Suite', () => {
     const currentContent = 'a\nc'; // Line 'b' is deleted
     setupStubs(true, false, originalEncrypted);
 
-    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.unchangedLinesMap.size, 2, 'Two lines should be unchanged');
     assert.strictEqual(service.shouldReEncryptLine(1, context), false, 'Line 1 (a) should not be re-encrypted');
@@ -136,7 +138,7 @@ suite('GitDiffService Test Suite', () => {
     const currentContent = 'common3\ncommon1\ncommon2'; // Lines are reordered
     setupStubs(true, false, originalEncrypted);
 
-    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.unchangedLinesMap.size, 3, 'All 3 common lines should be identified');
     assert.strictEqual(service.shouldReEncryptLine(1, context), false, 'Line 1 (common3) should not be re-encrypted');
@@ -165,7 +167,7 @@ suite('GitDiffService Test Suite', () => {
     ].join('\n');
     setupStubs(true, false, originalEncrypted);
 
-    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService);
+    const context = await service.createEncryptionContext('file.txt', currentContent, mockEncryptionService as EncryptionService<any, any>);
 
     assert.strictEqual(context.unchangedLinesMap.size, 3, 'Three common lines should be identified');
 

@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as crypto from 'crypto';
+import { EncryptionService } from 'easy-cipher-mate';
+import { TextEncoding } from 'easy-cipher-mate/lib/utils/encodingUtils';
 
 const execAsync = promisify(exec);
 
@@ -103,7 +105,7 @@ export class GitDiffService {
   /**
    * Decrypts an array of lines. Failed decryptions are handled gracefully to not break the diff.
    */
-  private async decryptLines(lines: string[], encryptionService: any, encoding: string): Promise<string[]> {
+  private async decryptLines(lines: string[], encryptionService: EncryptionService<any, any>, encoding: string): Promise<string[]> {
     try {
       return await Promise.all(
         lines.map(async (line) => {
@@ -112,7 +114,7 @@ export class GitDiffService {
           }
           try {
             const buffer = Buffer.from(line, 'base64');
-            return await encryptionService.decryptText(buffer, encoding);
+            return await encryptionService.decryptText(buffer, encoding as TextEncoding);
           } catch (e) {
             // If a line fails to decrypt, it can't be part of a common subsequence.
             // Return a unique string to ensure it doesn't match any real content.
@@ -169,7 +171,7 @@ export class GitDiffService {
   public async createEncryptionContext(
     filePath: string,
     currentContent: string,
-    encryptionService: any,
+    encryptionService: EncryptionService<any, any>,
     encoding: string = 'utf-8'
   ): Promise<EncryptionContext> {
     await this.initializeGitRepository();
